@@ -18,8 +18,8 @@ of by pasting a `.plg` or GitHub link.
   `!secret gitea/reader`, never a token. Tokens never reach a command line, log or the UI.
 - **Syncs** at install (if the array is up), when the array starts, on a cron schedule you set, and from a *Sync now* button.
 - **Heads-up validator:** after each sync it flags template fields that still point at GitHub (`github.com`,
-  `raw.githubusercontent.com`, `ghcr.io`, ...), separating your own account (move to `git.kiztigs.com`) from your own ghcr.io images
-  (they stay) and other people's projects. Informational only.
+  `raw.githubusercontent.com`, `ghcr.io`, ...), separating your own account, including your own ghcr.io images (move to `git.kiztigs.com`; images
+  live in Gitea's container registry), from other people's projects. Informational only.
 
 Settings > Utilities > **Flightplan**.
 

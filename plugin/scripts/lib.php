@@ -740,8 +740,9 @@ const FP_EXPECTED_ORIGIN = 'git.kiztigs.com';
 const FP_OWN_ACCOUNT = 'kmbrimble';
 
 /**
- * Classify a GitHub reference: 'moveme' (his own account, so it belongs on the expected origin), 'intended' (his own
- * container image on ghcr.io, which GitHub's registry still hosts) or 'third' (someone else's upstream, informational).
+ * Classify a GitHub reference: 'moveme' (his own account, so it belongs on the expected origin: this includes his own
+ * ghcr.io images, which now live in Gitea's container registry at git.kiztigs.com/kmbrimble/<image>) or 'third'
+ * (someone else's upstream, informational). References to Gitea itself are not GitHub hosts and are never flagged.
  */
 function fp_ref_kind(string $tag, string $host, string $value): string
 {
@@ -751,7 +752,7 @@ function fp_ref_kind(string $tag, string $host, string $value): string
     if (!$own) {
         return 'third';
     }
-    return ($host === 'ghcr.io' && $tag === 'Repository') ? 'intended' : 'moveme';
+    return 'moveme';
 }
 
 function fp_value_for_display(string $v): string

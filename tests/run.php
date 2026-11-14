@@ -446,7 +446,9 @@ t('validator flags GitHub references and nothing else', function () {
         . '<Icon>https://objects.githubusercontent.com/i.png</Icon><Support>https://user:pw@github.com/kmbrimble/x</Support>'
         . '<Project>https://docs.github.com/en</Project><ReadMe>https://github.com/linuxserver/docker-x</ReadMe></Container>';
     $clean = tpl('lscr.io/linuxserver/x', '<Icon>https://git.kiztigs.com/i.png</Icon><Support>https://notgithub.com/x</Support><Project>https://mygithub.com.evil.example/</Project>');
-    fake_set(['o/r' => ['branches' => ['main' => gsha('1')], 'zip' => make_zip("$sb[base]/a.zip", ['flagged.xml' => $flagged, 'clean.xml' => $clean])]]);
+    // His own image in Gitea's container registry is first-class: not a GitHub host, never flagged.
+    $gitea = tpl('git.kiztigs.com/kmbrimble/x:latest', '<Registry>https://git.kiztigs.com/kmbrimble/-/packages/container/x</Registry><Support>https://git.kiztigs.com/kmbrimble/x</Support>');
+    fake_set(['o/r' => ['branches' => ['main' => gsha('1')], 'zip' => make_zip("$sb[base]/a.zip", ['flagged.xml' => $flagged, 'clean.xml' => $clean, 'gitea.xml' => $gitea])]]);
     setup_config([src()]);
     fp_sync_all('test');
     $s = array_values(fp_state_load()['sources'])[0];
@@ -462,10 +464,10 @@ t('validator flags GitHub references and nothing else', function () {
     assert_eq(['Icon' => 'objects.githubusercontent.com', 'PluginURL' => 'raw.githubusercontent.com', 'Project' => 'github.com',
         'ReadMe' => 'github.com', 'Repository' => 'ghcr.io', 'Support' => 'github.com', 'TemplateURL' => 'github.com'], $byTag);
     assert_eq(7, $s['warning_total']);
-    // His own account on GitHub should move to git.kiztigs.com; his own ghcr.io image is intended; upstream projects are third party.
+    // His own account on GitHub should move to git.kiztigs.com (his own ghcr.io image too: images live in Gitea's registry); upstream projects are third party.
     assert_eq(['Icon' => 'third', 'PluginURL' => 'moveme', 'Project' => 'third', 'ReadMe' => 'third',
-        'Repository' => 'intended', 'Support' => 'moveme', 'TemplateURL' => 'moveme'], $kinds);
-    assert_eq(3, $s['move_total']);
+        'Repository' => 'moveme', 'Support' => 'moveme', 'TemplateURL' => 'moveme'], $kinds);
+    assert_eq(4, $s['move_total']);
     assert_true(!str_contains(json_encode($s['warnings']), 'pw@'), 'credentials leaked into a warning');
     assert_true(is_file("$sb[private]/r/flagged.xml"), 'warnings must never block');
     assert_true(fp_sync_all('test')['ok']);

@@ -104,7 +104,7 @@ step (the fine-grained token has no Administration permission).
   a note. A template CA would ignore (no `Repository`, or `<Plugin>true` with no `PluginURL`) is shipped with a warning.
 - **Validator:** the URL-bearing tags (`PluginURL`, `Repository`, `TemplateURL`, `Icon`, `Support`, `Project`, `ReadMe`,
   `Registry`, `DonateLink`, `WebUI`) are matched for `github.com`, `*.githubusercontent.com` and `ghcr.io`, and each hit is classified: `moveme` (account `kmbrimble`, belongs on
-  `git.kiztigs.com`), `intended` (his own `ghcr.io` image in `Repository`, which stays) or `third` (upstream). Free text
+  `git.kiztigs.com`; this includes his own `ghcr.io` images, which now live in Gitea's container registry as `git.kiztigs.com/kmbrimble/<image>`, never flagged) or `third` (upstream). Free text
   (`Overview`, `Changes`) is deliberately not scanned. Informational only; never blocks. Userinfo is stripped before display.
 - **One lock** (`/tmp/flightplan/sync.lock`, `flock`) for cron, boot, install and the button. "Sync now" spawns a detached
   `flightplan-sync.php --manual`; the page polls `status`.
