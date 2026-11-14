@@ -1,0 +1,95 @@
+<?xml version="1.0" standalone="yes"?>
+
+<!DOCTYPE PLUGIN [
+<!ENTITY name      "flightplan">
+<!ENTITY author    "kmbrimble">
+<!ENTITY version   "0.1.0">
+<!ENTITY launch    "Settings/Flightplan">
+<!ENTITY pluginURL "https://raw.githubusercontent.com/kmbrimble/unraid-flightplan/main/flightplan.plg">
+<!ENTITY gitURL    "https://github.com/kmbrimble/unraid-flightplan/releases/download/v&version;">
+<!ENTITY plgPATH   "/boot/config/plugins/&name;">
+<!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
+<!ENTITY md5       "aec2abbad04709588be9071d64f17e8f">
+]>
+
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" support="https://github.com/kmbrimble/unraid-flightplan" min="7.0" icon="plane">
+
+<CHANGES>
+###0.1.0
+- First release. Mirrors Community Applications style template XMLs from git
+  repositories (Gitea or GitHub) into CA's Private Apps folder, so your own
+  Docker containers and plugins install from the Apps tab. Change detection is
+  by branch head SHA, so a sync only downloads when something changed. Folders
+  it creates carry an ownership marker and only those are ever replaced or
+  pruned; a failed download or an empty result keeps the existing copy, and a
+  missing or unreadable source list prunes nothing. Private repositories use a
+  SecretsMan reference instead of a stored token. Syncs at install (if the array
+  is up), when the array starts, on a cron schedule and from a Sync now button,
+  and flags template fields that still point at GitHub (informational only).
+</CHANGES>
+
+<FILE Name="&plgPATH;/&name;-&version;.txz">
+<URL>&gitURL;/&name;-&version;.txz</URL>
+<MD5>&md5;</MD5>
+</FILE>
+
+<!--
+Install step. Every script invoked below is checked with -f (file exists), never -x (executable bit); see
+CLAUDE.md rule 4. A sync problem or an unreachable network must never fail the install: after-install.sh always
+exits 0, and the call is guarded again here.
+-->
+<FILE Run="/bin/bash">
+<INLINE>
+set -e
+
+# Remove any previously installed package version before upgrading, so no stale entry is left in
+# /var/log/packages. Looped over the directory rather than a bare removepkg glob.
+for pkg in /var/log/packages/&name;-*; do
+  if [[ -f "$pkg" ]]; then
+    removepkg "$(basename "$pkg")"
+  fi
+done
+
+upgradepkg --install-new &plgPATH;/&name;-&version;.txz
+
+# Only the current package stays on flash; older versioned archives pile up otherwise.
+for old in &plgPATH;/&name;-[0-9]*.txz; do
+  if [[ -f "$old" ]]; then
+    if [[ "$old" != "&plgPATH;/&name;-&version;.txz" ]]; then
+      rm -f "$old"
+    fi
+  fi
+done
+
+# The config (flightplan.json) is deliberately not created here: a missing source list means "prune nothing".
+# Re-register the schedule and, if the array is already up, start the first sync in the background.
+if [[ -f &emhttp;/scripts/after-install.sh ]]; then
+  bash &emhttp;/scripts/after-install.sh || true
+fi
+
+echo "&name;: install complete"
+</INLINE>
+</FILE>
+
+<!--
+Remove step. Drops the cron entry, deletes the folders Flightplan put in the Private Apps folder (only those
+carrying its ownership marker), the staging folder and the RAM state. The configuration file
+(&plgPATH;/&name;.json) is kept on flash so a reinstall restores the sources; it holds no credentials, only
+SecretsMan references. Delete it by hand to wipe it.
+-->
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+if [[ -f &emhttp;/scripts/flightplan-sync.php ]]; then
+  php &emhttp;/scripts/flightplan-sync.php --uninstall || true
+fi
+
+removepkg &name;-&version; || true
+
+rm -rf &emhttp;
+rm -f &plgPATH;/&name;-*.txz
+
+echo "&name;: removed"
+</INLINE>
+</FILE>
+
+</PLUGIN>

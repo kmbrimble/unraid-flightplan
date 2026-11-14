@@ -1,0 +1,9 @@
+#!/bin/bash
+# emhttpd "started" event: the array is up. Containers (Gitea) and the SecretsMan store under /mnt/user may still
+# be coming up, so the boot pass retries a few times with growing gaps. Detached and quiet: emhttpd blocks on
+# event scripts, and event-script output goes nowhere durable (the sync logs to /tmp/flightplan/flightplan.log).
+S=/usr/local/emhttp/plugins/flightplan/scripts/flightplan-sync.php
+if [[ -f "$S" ]]; then
+  nohup setsid php "$S" --boot > /dev/null 2>&1 &
+fi
+exit 0

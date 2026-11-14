@@ -1,0 +1,36 @@
+/* Flightplan layout. Values come from the vendored tokens.css; only layout sizes are literal here. */
+[hidden] { display: none !important; } /* author display rules (grid/inline-flex) must not defeat the hidden attribute */
+.fp-wrap { max-width: 960px; margin: 0 auto; padding: var(--space-4); display: grid; gap: var(--space-4); }
+.fp-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-3); }
+.fp-title {
+  margin: 0; font-size: var(--text-xl); font-weight: var(--weight-bold);
+  background: var(--gradient-brand); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.fp-muted { color: var(--fg-muted); font-size: var(--text-sm); }
+.fp-card-body { padding: var(--space-4); display: grid; gap: var(--space-3); }
+.fp-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.fp-spread { justify-content: space-between; }
+.fp-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); margin: 0; }
+.fp-facts dt { font-size: var(--text-xs); color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.fp-facts dd { margin: 0; font-size: var(--text-base); }
+.fp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--space-3); }
+.fp-field { display: grid; gap: var(--space-1); font-size: var(--text-sm); }
+.fp-field .input { width: 100%; min-width: 0; }
+.fp-source { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-4); display: grid; gap: var(--space-3); background: var(--surface-2); box-shadow: var(--shadow-1); }
+.fp-src-status { display: grid; gap: var(--space-2); font-size: var(--text-sm); }
+.fp-mono { font-family: var(--font-mono); font-size: var(--text-xs); overflow-wrap: anywhere; }
+.fp-err { color: var(--status-alert); }
+.fp-banner { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--status-warn-tint); color: var(--status-warn); }
+.fp-banner.fp-bad { background: var(--status-alert-tint); color: var(--status-alert); }
+.fp-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.fp-table th { text-align: left; font-size: var(--text-xs); color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.08em; padding: var(--space-2); border-bottom: 1px solid var(--border); }
+.fp-table td { padding: var(--space-2); border-bottom: 1px solid var(--border); vertical-align: top; overflow-wrap: anywhere; }
+.fp-log { margin: 0; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fp-check { display: inline-flex; align-items: center; gap: var(--space-2); min-height: max(44px, 2.75rem); }
+.fp-check input { width: var(--space-5); height: var(--space-5); accent-color: var(--accent); }
+details > summary { cursor: pointer; min-height: max(44px, 2.75rem); display: flex; align-items: center; }
+.fp-pre { white-space: pre-wrap; }
+.fp-card-body .fp-card-body { padding: 0; }
+.fp-grid { align-items: start; }
+.fp-table-wrap { overflow-x: auto; }
+.fp-wrap, .fp-card-body, .fp-source { min-width: 0; }

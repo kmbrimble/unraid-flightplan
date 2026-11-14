@@ -32,8 +32,8 @@ https://raw.githubusercontent.com/kmbrimble/unraid-flightplan/main/flightplan.pl
 
 ## Notes
 
-- A Gitea source needs the Unraid host to resolve and be allowed to reach that Gitea. If it cannot, point the source at the
-  repository's public GitHub mirror (`forge: github`), which needs no token.
+- A Gitea source needs the Unraid host to be able to reach that Gitea (and a token if sign-in is required). If it cannot, point
+  the source at the repository's public GitHub mirror (`forge: github`), which needs no token.
 - Templates are plain CA XML: a Docker template needs `<Repository>`; a plugin template needs `<Plugin>true</Plugin>` and
   `<PluginURL>`.
 - Uninstalling removes the folders Flightplan created (only those) and keeps `flightplan.json` on flash.
