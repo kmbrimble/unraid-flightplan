@@ -150,7 +150,6 @@ scripts/check-md5.sh            build + require the .plg md5 (CI and release)
 scripts/version-sorts-after.php strcmp guard
 tests/run.php                   hand-rolled assert runner; tests/fixtures/fake-forge.php (php -S fake Gitea/GitHub)
 .gitea/workflows/ci.yml         lint + test + release-readiness (Gitea runner)
-.github/workflows/release.yml   on a mirrored v* tag: guard, rebuild, md5, GitHub Release (dry run via dispatch)
 ```
 
 ## Test command
