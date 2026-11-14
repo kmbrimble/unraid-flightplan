@@ -171,7 +171,7 @@
     var tb = els.refs; tb.textContent = '';
     var rows = [];
     (status.config.sources || []).forEach(function (s) {
-      if (s.state) (s.state.warnings || []).forEach(function (w) { rows.push([s.name, w.file, w.tag, w.host + (w.kind === 'moveme' ? ' (yours: move to git.kiztigs.com)' : w.kind === 'intended' ? ' (yours: image stays on ghcr.io)' : ' (third party)'), w.value]); });
+      if (s.state) (s.state.warnings || []).forEach(function (w) { rows.push([s.name, w.file, w.tag, w.host + (w.kind === 'moveme' ? ' (yours: move to git.kiztigs.com)' : ' (third party)'), w.value]); });
     });
     if (!rows.length) tb.appendChild(el('p', { class: 'fp-muted', text: 'No template points at GitHub. These are informational and never block a sync.' }));
     else {

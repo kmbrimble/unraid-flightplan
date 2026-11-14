@@ -3,6 +3,12 @@
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions are compared as plain strings by the Unraid plugin manager; keep every component single-digit or zero-padded.
 
+## [0.2.1]
+
+### Changed
+- Validator: your own `ghcr.io` images are `moveme` (the `intended` class is gone); images in Gitea's container registry are never flagged.
+- The legacy GitHub release workflow was removed; Gitea is the only publisher.
+
 ## [0.2.0]
 
 ### Changed

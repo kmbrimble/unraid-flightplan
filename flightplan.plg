@@ -3,18 +3,21 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "flightplan">
 <!ENTITY author    "kmbrimble">
-<!ENTITY version   "0.2.0">
+<!ENTITY version   "0.2.1">
 <!ENTITY launch    "Settings/Flightplan">
 <!ENTITY pluginURL "https://git.kiztigs.com/kmbrimble/unraid-flightplan/raw/branch/main/flightplan.plg">
 <!ENTITY gitURL    "https://git.kiztigs.com/kmbrimble/unraid-flightplan/releases/download/v&version;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
-<!ENTITY md5       "5f5bdacf71abcb6bcabd10ea691cc1cb">
+<!ENTITY md5       "e3393ae93e06cd9ac7734abcbb00eba0">
 ]>
 
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" support="https://git.kiztigs.com/kmbrimble/unraid-flightplan" min="7.0" icon="plane">
 
 <CHANGES>
+###0.2.1
+- The reference check now treats your own ghcr.io images as references to move: they live in Gitea's container registry
+  (git.kiztigs.com/kmbrimble/NAME), which is never flagged.
 ###0.2.0
 - Flightplan is now delivered from Gitea (git.kiztigs.com): the plugin and its
   updates come from the Gitea repository and its releases instead of GitHub.
