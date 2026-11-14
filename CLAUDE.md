@@ -24,13 +24,19 @@ step (the fine-grained token has no Administration permission).
   `git tag v<version> <merge-sha> && git push origin v<version>` on Gitea. The tag is mirrored and
   `.github/workflows/release.yml` rebuilds, requires the same md5 and publishes the GitHub Release with the `.txz`.
   Nothing writes back. See the `forge-release` skill.
-- **Where installed servers fetch from: GitHub** (`raw.githubusercontent.com/.../main/flightplan.plg` and the GitHub release
-  asset), exactly like Dormouse. Checked read-only on the host (14 Nov 2026): the host cannot fetch from Gitea at all, so a
-  Gitea `.plg` URL could never install. Three independent reasons: (1) the host resolves through public DNS and the Gitea name
-  only exists in the LAN resolver; (2) the Gitea reverse proxy has a LAN-only allow-list that does not include the host's
-  address on the Docker network, so a request that does reach it gets a plain `403 Forbidden`; (3) the instance requires sign-in
-  even for public repos (anonymous API returns 403 "Only signed in user is allowed to call APIs", raw files 303 to login), so
-  there is no anonymous read to fall back on. The proxy and DNS are outside this repo; do not "fix" them from here.
+- **Where installed servers fetch the plugin from: GitHub** (`raw.githubusercontent.com/.../main/flightplan.plg` and the GitHub
+  release asset), exactly like Dormouse. Plugin installs stay on GitHub so they never depend on the homelab being up.
+- **Where the host reads templates from: Gitea, through Caddy (set up 14 Nov 2026).** Gitea requires sign-in even for public
+  repos, so every Gitea source needs a token (a SecretsMan reference). The path that works, and what it depends on (all outside
+  this repo):
+  1. the host's `/boot/config/go` appends `172.18.0.201 git.kiztigs.com` to `/etc/hosts` (host DNS is public-only);
+  2. Caddy's proxynet IP is pinned to 172.18.0.201 in its dockerMan template and NetMan row (the caddy repo's CLAUDE.md);
+  3. Caddy's `@git_lan_only` matcher includes 172.18.0.1, the host as Caddy sees it;
+  4. a read-only token: SecretsMan key `flightplan/gitea-token`, account `flightplan-bot` (restricted bot, collaborator read on
+     `kmbrimble/unraid-templates` only, scope `read:repository`).
+  If a Gitea sync fails with 403 or DNS errors, check those four in that order. The old workaround (`base_url` = Gitea's Docker
+  address, or the per-source "Resolve IP" field) is not needed. `forge: github` against a public push mirror remains the
+  token-free alternative.
 
 ## Non-negotiable constraints
 
@@ -105,15 +111,9 @@ step (the fine-grained token has no Administration permission).
 - CA is installed; `private/` already contains a `DockerHub` folder that is not ours.
 - The real SecretsMan library (`/usr/local/emhttp/plugins/unraid-secretsman/src/secretsman.php`) resolves a reference on the
   host through `fp_token_resolve()` (piped over ssh stdin, nothing written; printed only a length check).
-- **Gitea through its public name is not reachable from the host** (see "Where installed servers fetch from"). Gitea's own
-  container address on the Docker network *is* reachable from the host and works with a token: a probe through this engine
-  with the real SecretsMan library and a read-only token returned the same branch head SHA as `gt api` (14 Nov 2026). Its
-  anonymous requests get Gitea's sign-in wall (403 JSON), which is what first looked like a network block. So a `gitea` source
-  works today with `base_url = http://<Gitea container IP>:3000` plus a token reference, but that IP is assigned by Docker and
-  can change when the container is recreated, and the token travels over plain HTTP on the host-local bridge. The stable,
-  token-free alternative is `forge: github` pointing at the public push mirror (up to a minute behind Gitea). The per-source
-  "Resolve IP" field maps to curl's RESOLVE (TLS still verifies the real name); it fixes DNS only, not the proxy allow-list.
-  GitHub's anonymous limit is 60 API calls/hour/IP; a source costs 1 call when a branch is set (2 without).
+- Gitea through its public name WAS unreachable from the host until the 14 Nov 2026 change above; it now is, and a real sync of
+  `kmbrimble/unraid-templates` works on the host (9 templates, second sync skipped on the unchanged SHA). GitHub's anonymous
+  limit is 60 API calls/hour/IP; a source costs 1 call when a branch is set (2 without).
 
 ## Infrastructure this repo depends on but does not contain
 
@@ -159,11 +159,15 @@ the fake forge actually received the credential, so it cannot pass vacuously. On
 Mutation-checked once (14 Nov 2026): removing the redirect-origin check, the owned-only prune, the missing-config
 guard or the SHA skip each turns a test red.
 
-## Not yet verified
+## Verified on the host (14 Nov 2026) and still not verified
 
-- A real install through `dynamix.plugin.manager`, an upgrade, an uninstall, and a boot-time `event/started` run on the host
-  (installing on the host is a separate approved step; this repo's tests run the `.plg` blocks against stubs only).
-- The page inside the real webGui (iframe fitting, Unraid theme). It WAS driven in headless Chromium against `php -S` (add source,
-  refused pasted token, save, Sync now, status, light/dark, 1920 and 375 px, zero console/page errors, details stay open across
-  polls); the real webGui, nginx auth and CSRF were not in that loop.
-- A Gitea source against a host that can actually reach Gitea.
+Verified on the real host: install through `plugin install` from the GitHub raw URL, `plugin remove` (owned folder, cron entry,
+staging and RAM state gone; `flightplan.json` and the foreign `DockerHub` folder byte-identical), reinstall, sync of a Gitea
+source with a SecretsMan token, skip on unchanged SHA, the page and the status/sync actions through nginx with a real webGui
+session and CSRF token, CA listing the 9 templates as Private Apps, and the token absent from flash, syslog, RAM state and the
+status JSON. Install/remove/reinstall found one bug (0.1.1: cron stayed inactive after a fresh install because `update_cron` only
+sees plugins the plugin manager has already registered).
+
+Not verified: a boot-time `event/started` run and an upgrade-in-place on the host (no reboot allowed in testing); the page
+rendered in a real browser inside the webGui (HTTP 200 and the endpoints were checked, not the iframe's appearance); a GitHub
+source against the live API from the host.
