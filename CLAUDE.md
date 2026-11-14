@@ -21,11 +21,17 @@ step (the fine-grained token has no Administration permission).
   tag yet, the build must be reproducible and `&md5;` must already equal its md5). The first run on a bump fails with
   `set &md5; to <value>`; put that value in the PR.
 - Release = version-bump PR (also `###<version>` in `<CHANGES>`, `CHANGELOG.md`, `&md5;`), merge, then
-  `git tag v<version> <merge-sha> && git push origin v<version>` on Gitea. The tag is mirrored and
-  `.github/workflows/release.yml` rebuilds, requires the same md5 and publishes the GitHub Release with the `.txz`.
-  Nothing writes back. See the `forge-release` skill.
-- **Where installed servers fetch the plugin from: GitHub** (`raw.githubusercontent.com/.../main/flightplan.plg` and the GitHub
-  release asset), exactly like Dormouse. Plugin installs stay on GitHub so they never depend on the homelab being up.
+  `git tag v<version> <merge-sha> && git push origin v<version>` on Gitea. The tag triggers `.gitea/workflows/release.yml`, which
+  runs `scripts/gitea-release.sh` (shared by all plugin repos; canonical copy here): tag == `&version;`, CHANGES entry, strcmp
+  ordering against every other tag, deterministic rebuild with `&md5;` equal, then creates the **Gitea release**, uploads the
+  `.txz` and reads it back. Token: the job token, or an Actions secret `RELEASE_TOKEN` if one is set. Recovery for a failed run
+  (tags never move): `workflow_dispatch` with `tag` and `publish` true. The mirrored GitHub `release.yml` still exists and
+  publishes the same deterministic bytes to a GitHub release that nothing depends on. See the `forge-release` skill.
+- **Where installed servers fetch the plugin from: Gitea (since 0.2.0, 14 Nov 2026)** (`pluginURL` =
+  `https://git.kiztigs.com/kmbrimble/unraid-flightplan/raw/branch/main/flightplan.plg`, the `.txz` from the Gitea release). Kieren's
+  decision: Gitea delivers all his Unraid plugins, GitHub is for HACS add-ons only. The owner `kmbrimble` is public on Gitea (LAN-only
+  behind Caddy's `@git_lan_only`), so these URLs need no token; private repos (unraid-templates, unraid-ops) stay private. Cost: plugin
+  updates now depend on the homelab being up and on the host's `git.kiztigs.com` hosts entry (see below).
 - **Where the host reads templates from: Gitea, through Caddy (set up 14 Nov 2026).** Gitea requires sign-in even for public
   repos, so every Gitea source needs a token (a SecretsMan reference). The path that works, and what it depends on (all outside
   this repo):
@@ -97,7 +103,8 @@ step (the fine-grained token has no Administration permission).
 - **Template check:** each file must be well-formed XML with root `Container` and no DOCTYPE/ENTITY; others are skipped with
   a note. A template CA would ignore (no `Repository`, or `<Plugin>true` with no `PluginURL`) is shipped with a warning.
 - **Validator:** the URL-bearing tags (`PluginURL`, `Repository`, `TemplateURL`, `Icon`, `Support`, `Project`, `ReadMe`,
-  `Registry`, `DonateLink`, `WebUI`) are matched for `github.com`, `*.githubusercontent.com` and `ghcr.io`. Free text
+  `Registry`, `DonateLink`, `WebUI`) are matched for `github.com`, `*.githubusercontent.com` and `ghcr.io`, and each hit is classified: `moveme` (account `kmbrimble`, belongs on
+  `git.kiztigs.com`), `intended` (his own `ghcr.io` image in `Repository`, which stays) or `third` (upstream). Free text
   (`Overview`, `Changes`) is deliberately not scanned. Informational only; never blocks. Userinfo is stripped before display.
 - **One lock** (`/tmp/flightplan/sync.lock`, `flock`) for cron, boot, install and the button. "Sync now" spawns a detached
   `flightplan-sync.php --manual`; the page polls `status`.

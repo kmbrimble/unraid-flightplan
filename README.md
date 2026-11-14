@@ -14,11 +14,12 @@ of by pasting a `.plg` or GitHub link.
   when the SHA differs from the last good sync.
 - **Safe by construction:** folders it creates carry an ownership marker and only those are replaced or removed. A failed
   download or an empty result keeps what is already there; a missing or unreadable source list removes nothing.
-- **Private repositories:** the config holds a [SecretsMan](https://github.com/kmbrimble/unraid-secretsman) reference such as
+- **Private repositories:** the config holds a [SecretsMan](https://git.kiztigs.com/kmbrimble/unraid-secretsman) reference such as
   `!secret gitea/reader`, never a token. Tokens never reach a command line, log or the UI.
 - **Syncs** at install (if the array is up), when the array starts, on a cron schedule you set, and from a *Sync now* button.
 - **Heads-up validator:** after each sync it flags template fields that still point at GitHub (`github.com`,
-  `raw.githubusercontent.com`, `ghcr.io`, ...). Informational only.
+  `raw.githubusercontent.com`, `ghcr.io`, ...), separating your own account (move to `git.kiztigs.com`) from your own ghcr.io images
+  (they stay) and other people's projects. Informational only.
 
 Settings > Utilities > **Flightplan**.
 
@@ -27,13 +28,13 @@ Settings > Utilities > **Flightplan**.
 Add this URL in the Unraid Plugins tab ("Install Plugin"):
 
 ```
-https://raw.githubusercontent.com/kmbrimble/unraid-flightplan/main/flightplan.plg
+https://git.kiztigs.com/kmbrimble/unraid-flightplan/raw/branch/main/flightplan.plg
 ```
 
 ## Notes
 
-- A Gitea source needs the Unraid host to be able to reach that Gitea (and a token if sign-in is required). If it cannot, point
-  the source at the repository's public GitHub mirror (`forge: github`), which needs no token.
+- The plugin itself and its updates come from Gitea, so the host must be able to reach `git.kiztigs.com` (LAN only). A Gitea source
+  needs the same, plus a token if the repository is private. `forge: github` against a public mirror remains a token-free option.
 - Templates are plain CA XML: a Docker template needs `<Repository>`; a plugin template needs `<Plugin>true</Plugin>` and
   `<PluginURL>`.
 - Uninstalling removes the folders Flightplan created (only those) and keeps `flightplan.json` on flash.

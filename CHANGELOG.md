@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions are compared as plain strings by the Unraid plugin manager; keep every component single-digit or zero-padded.
 
+## [0.2.0]
+
+### Changed
+- Delivery moved from GitHub to Gitea: `pluginURL`, the `.txz` URL and `support` point at git.kiztigs.com. Releases are Gitea
+  releases, published by `.gitea/workflows/release.yml` through the shared `scripts/gitea-release.sh`. The GitHub mirror and its
+  release workflow remain but installed servers no longer depend on them.
+- The GitHub-reference validator classifies each hit: `moveme` (your own account, belongs on git.kiztigs.com), `intended` (your own
+  `ghcr.io` image in `Repository`) or `third` (upstream). New per-source `move_total`. Still informational only.
+
 ## [0.1.1]
 
 ### Fixed

@@ -735,13 +735,32 @@ function fp_github_host(string $value): string
     return '';
 }
 
+/** Where Kieren's own plugins and templates are served from; GitHub references into his account should move here. */
+const FP_EXPECTED_ORIGIN = 'git.kiztigs.com';
+const FP_OWN_ACCOUNT = 'kmbrimble';
+
+/**
+ * Classify a GitHub reference: 'moveme' (his own account, so it belongs on the expected origin), 'intended' (his own
+ * container image on ghcr.io, which GitHub's registry still hosts) or 'third' (someone else's upstream, informational).
+ */
+function fp_ref_kind(string $tag, string $host, string $value): string
+{
+    $v = strtolower(trim($value));
+    $v = preg_replace('~^[a-z][a-z0-9+.-]*://~', '', $v) ?? $v;
+    $own = (bool) preg_match('~(?:^|[/@.])' . preg_quote($host, '~') . '[/:]' . preg_quote(FP_OWN_ACCOUNT, '~') . '(?:[/:@]|$)~', $v);
+    if (!$own) {
+        return 'third';
+    }
+    return ($host === 'ghcr.io' && $tag === 'Repository') ? 'intended' : 'moveme';
+}
+
 function fp_value_for_display(string $v): string
 {
     $v = preg_replace('~(://)[^/@\s]*@~', '$1', $v) ?? $v;
     return fp_clean($v, 160);
 }
 
-/** Parse one template. Returns [ok, error, warnings(list of string), refs(list of [tag,host,value])]. */
+/** Parse one template. Returns [ok, error, warnings(list of string), refs(list of [tag,host,value,kind])]. */
 function fp_template_inspect(string $xml): array
 {
     if (stripos($xml, '<!ENTITY') !== false || stripos($xml, '<!DOCTYPE') !== false) {
@@ -771,7 +790,7 @@ function fp_template_inspect(string $xml): array
             $val = trim((string) $node);
             $host = $val === '' ? '' : fp_github_host($val);
             if ($host !== '') {
-                $refs[] = [$tag, $host, fp_value_for_display($val)];
+                $refs[] = [$tag, $host, fp_value_for_display($val), fp_ref_kind($tag, $host, $val)];
             }
         }
     }
@@ -918,8 +937,8 @@ function fp_sync_source(array $s, array $prev): array
         foreach ($warn as $w) {
             $tplWarn[] = $name . ': ' . $w;
         }
-        foreach ($refs as [$tag, $host, $val]) {
-            $refsAll[] = ['file' => $name, 'tag' => $tag, 'host' => $host, 'value' => $val];
+        foreach ($refs as [$tag, $host, $val, $kind]) {
+            $refsAll[] = ['file' => $name, 'tag' => $tag, 'host' => $host, 'value' => $val, 'kind' => $kind];
         }
     }
     $r['notes'] = array_slice($notes, 0, 100);
@@ -970,9 +989,10 @@ function fp_sync_source(array $s, array $prev): array
     $r['error'] = '';
     $r['synced_at'] = time();
     $r['warning_total'] = count($refsAll);
+    $r['move_total'] = count(array_filter($refsAll, fn($x) => $x['kind'] === 'moveme'));
     $r['warnings'] = array_slice($refsAll, 0, FP_MAX_WARNINGS);
     $r['template_warnings'] = array_slice($tplWarn, 0, 100);
-    fp_log('source ' . $r['folder'] . ': updated to ' . substr($sha, 0, 8) . ' (' . count($good) . ' templates, ' . count($refsAll) . ' GitHub references)');
+    fp_log('source ' . $r['folder'] . ': updated to ' . substr($sha, 0, 8) . ' (' . count($good) . ' templates, ' . count($refsAll) . ' GitHub references, ' . $r['move_total'] . ' of them yours to move to ' . FP_EXPECTED_ORIGIN . ')');
     return $r;
 }
 

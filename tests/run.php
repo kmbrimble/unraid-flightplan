@@ -444,21 +444,28 @@ t('validator flags GitHub references and nothing else', function () {
         . '<PluginURL>https://raw.githubusercontent.com/kmbrimble/x/main/x.plg</PluginURL>'
         . '<TemplateURL>https://github.com/kmbrimble/templates/raw/main/x.xml</TemplateURL>'
         . '<Icon>https://objects.githubusercontent.com/i.png</Icon><Support>https://user:pw@github.com/kmbrimble/x</Support>'
-        . '<Project>https://docs.github.com/en</Project></Container>';
+        . '<Project>https://docs.github.com/en</Project><ReadMe>https://github.com/linuxserver/docker-x</ReadMe></Container>';
     $clean = tpl('lscr.io/linuxserver/x', '<Icon>https://git.kiztigs.com/i.png</Icon><Support>https://notgithub.com/x</Support><Project>https://mygithub.com.evil.example/</Project>');
     fake_set(['o/r' => ['branches' => ['main' => gsha('1')], 'zip' => make_zip("$sb[base]/a.zip", ['flagged.xml' => $flagged, 'clean.xml' => $clean])]]);
     setup_config([src()]);
     fp_sync_all('test');
     $s = array_values(fp_state_load()['sources'])[0];
     $byTag = [];
+    $kinds = [];
     foreach ($s['warnings'] as $w) {
         assert_eq('flagged.xml', $w['file'], 'clean template flagged: ' . json_encode($w));
         $byTag[$w['tag']] = $w['host'];
+        $kinds[$w['tag']] = $w['kind'];
     }
     ksort($byTag);
+    ksort($kinds);
     assert_eq(['Icon' => 'objects.githubusercontent.com', 'PluginURL' => 'raw.githubusercontent.com', 'Project' => 'github.com',
-        'Repository' => 'ghcr.io', 'Support' => 'github.com', 'TemplateURL' => 'github.com'], $byTag);
-    assert_eq(6, $s['warning_total']);
+        'ReadMe' => 'github.com', 'Repository' => 'ghcr.io', 'Support' => 'github.com', 'TemplateURL' => 'github.com'], $byTag);
+    assert_eq(7, $s['warning_total']);
+    // His own account on GitHub should move to git.kiztigs.com; his own ghcr.io image is intended; upstream projects are third party.
+    assert_eq(['Icon' => 'third', 'PluginURL' => 'moveme', 'Project' => 'third', 'ReadMe' => 'third',
+        'Repository' => 'intended', 'Support' => 'moveme', 'TemplateURL' => 'moveme'], $kinds);
+    assert_eq(3, $s['move_total']);
     assert_true(!str_contains(json_encode($s['warnings']), 'pw@'), 'credentials leaked into a warning');
     assert_true(is_file("$sb[private]/r/flagged.xml"), 'warnings must never block');
     assert_true(fp_sync_all('test')['ok']);
@@ -772,9 +779,9 @@ t('plg parses as XML with entities resolved and carries what the installer needs
     preg_match('/<!ENTITY md5\s+"([^"]+)">/', $plgRaw, $m);
     assert_true(preg_match('/^[0-9a-f]{32}$/', $m[1] ?? '') === 1, 'md5 entity is not 32 hex');
     assert_true(str_contains($plgRaw, '###' . $v[1]), 'no CHANGES entry for the version');
-    assert_true(str_starts_with((string) $x['pluginURL'], 'https://raw.githubusercontent.com/kmbrimble/unraid-flightplan/main/'), 'pluginURL');
+    assert_true(str_starts_with((string) $x['pluginURL'], 'https://git.kiztigs.com/kmbrimble/unraid-flightplan/raw/branch/main/'), 'pluginURL');
     $files = $x->FILE;
-    assert_true(str_contains((string) $files[0]->URL, 'github.com/kmbrimble/unraid-flightplan/releases/download/v' . $v[1] . '/flightplan-' . $v[1] . '.txz'));
+    assert_true(str_contains((string) $files[0]->URL, 'git.kiztigs.com/kmbrimble/unraid-flightplan/releases/download/v' . $v[1] . '/flightplan-' . $v[1] . '.txz'));
     assert_eq((string) $files[0]->MD5, $m[1]);
 });
 

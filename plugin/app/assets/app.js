@@ -152,10 +152,10 @@
       (!status.last_sync ? chip('Not yet this boot', '') : (status.last_ok ? chip('OK', 'ok') : chip('Needs attention', 'alert')));
     fact('State', state);
     fact('Last sync', document.createTextNode(when(status.last_sync) + (status.last_trigger ? ' (' + status.last_trigger + ')' : '')));
-    var total = 0, warns = 0;
-    (status.config.sources || []).forEach(function (s) { if (s.state) { total += s.state.count || 0; warns += s.state.warning_total || 0; } });
+    var total = 0, warns = 0, moves = 0;
+    (status.config.sources || []).forEach(function (s) { if (s.state) { total += s.state.count || 0; warns += s.state.warning_total || 0; moves += s.state.move_total || 0; } });
     fact('Templates', document.createTextNode(String(total)));
-    fact('GitHub references', warns ? chip(warns + ' found', 'warn') : chip('none', 'ok'));
+    fact('GitHub references', warns ? chip(warns + ' found' + (moves ? ', ' + moves + ' to move to git.kiztigs.com' : ''), moves ? 'warn' : '') : chip('none', 'ok'));
     fact('SecretsMan', status.secretsman_installed ? chip('installed', 'ok') : chip('not installed', 'warn'));
     els.banner.textContent = '';
     if (status.config_status !== 'ok') {
@@ -171,7 +171,7 @@
     var tb = els.refs; tb.textContent = '';
     var rows = [];
     (status.config.sources || []).forEach(function (s) {
-      if (s.state) (s.state.warnings || []).forEach(function (w) { rows.push([s.name, w.file, w.tag, w.host, w.value]); });
+      if (s.state) (s.state.warnings || []).forEach(function (w) { rows.push([s.name, w.file, w.tag, w.host + (w.kind === 'moveme' ? ' (yours: move to git.kiztigs.com)' : w.kind === 'intended' ? ' (yours: image stays on ghcr.io)' : ' (third party)'), w.value]); });
     });
     if (!rows.length) tb.appendChild(el('p', { class: 'fp-muted', text: 'No template points at GitHub. These are informational and never block a sync.' }));
     else {
