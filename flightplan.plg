@@ -3,18 +3,25 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "flightplan">
 <!ENTITY author    "kmbrimble">
-<!ENTITY version   "0.1.0">
+<!ENTITY version   "0.1.1">
 <!ENTITY launch    "Settings/Flightplan">
 <!ENTITY pluginURL "https://raw.githubusercontent.com/kmbrimble/unraid-flightplan/main/flightplan.plg">
 <!ENTITY gitURL    "https://github.com/kmbrimble/unraid-flightplan/releases/download/v&version;">
 <!ENTITY plgPATH   "/boot/config/plugins/&name;">
 <!ENTITY emhttp    "/usr/local/emhttp/plugins/&name;">
-<!ENTITY md5       "aec2abbad04709588be9071d64f17e8f">
+<!ENTITY md5       "32c7dc2786d33160c735fe9a371bcd01">
 ]>
 
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" support="https://github.com/kmbrimble/unraid-flightplan" min="7.0" icon="plane">
 
 <CHANGES>
+###0.1.1
+- Fix: on a fresh install or reinstall the sync schedule was not active until cron
+  was next reloaded, because Unraid builds the system crontab only from plugins
+  the plugin manager has already registered, and registration happens after the
+  install script returns. The install step now reloads cron a second time, from
+  a detached helper, as soon as the plugin is registered.
+
 ###0.1.0
 - First release. Mirrors Community Applications style template XMLs from git
   repositories (Gitea or GitHub) into CA's Private Apps folder, so your own

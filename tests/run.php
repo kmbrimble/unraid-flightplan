@@ -806,8 +806,10 @@ t('plg install and remove blocks run clean against stubs, and a sync problem nev
         chmod("$bin/$cmd", 0755);
     }
     mkdir($flash, 0755, true);
+    $cur = (string) $x["version"];
+    assert_true($cur !== "" && $cur[0] !== "&", "plugin version not resolved");
     file_put_contents("$flash/flightplan-0.0.9.txz", 'old');
-    file_put_contents("$flash/flightplan-0.1.0.txz", 'cur');
+    file_put_contents("$flash/flightplan-$cur.txz", 'cur');
     file_put_contents("$flash/flightplan.json", '{"unrelated":1}');
     $subst = fn(string $s): string => str_replace(['/boot/config/plugins/flightplan', '/usr/local/emhttp/plugins/flightplan', '/var/log/packages'], [$flash, $emhttp, "$root/varlog"], $s);
     $env = ['PATH' => "$bin:" . getenv('PATH'), 'FLIGHTPLAN_EMHTTP' => $emhttp, 'FLIGHTPLAN_VAR_INI' => "$root/var.ini", 'FLIGHTPLAN_SYNC_SCRIPT' => "$emhttp/scripts/flightplan-sync.php"];
@@ -822,7 +824,7 @@ t('plg install and remove blocks run clean against stubs, and a sync problem nev
     [$code, $out] = $run($subst($blocks['install']), $env);
     assert_eq(0, $code, $out);
     assert_true(str_contains($out, 'array not started'), $out);
-    assert_true(!is_file("$flash/flightplan-0.0.9.txz") && is_file("$flash/flightplan-0.1.0.txz"), 'old txz handling');
+    assert_true(!is_file("$flash/flightplan-0.0.9.txz") && is_file("$flash/flightplan-$cur.txz"), 'old txz handling');
     assert_eq('{"unrelated":1}', file_get_contents("$flash/flightplan.json"), 'install touched the config');
     assert_true(is_file("$emhttp/event/started") && is_executable("$emhttp/event/started"));
     // array started, valid config pointing at a dead forge: still exit 0 (the sync runs detached)
@@ -839,7 +841,47 @@ t('plg install and remove blocks run clean against stubs, and a sync problem nev
     assert_eq(0, $code, $out);
     assert_true(!is_dir($emhttp) && !is_dir("$sb[private]/r"), 'remove left the tree or owned folders behind');
     assert_true(is_file("$flash/flightplan.json"), 'remove deleted the user config');
-    assert_true(!is_file("$flash/flightplan-0.1.0.txz"));
+    assert_true(!is_file("$flash/flightplan-$cur.txz"));
+});
+
+t('install: cron is reloaded AGAIN once the plugin manager has registered the plugin (update_cron only sees registered plugins)', function () use ($repoRoot) {
+    $sb = sandbox();
+    $rec = "$sb[base]/update_cron.calls";
+    file_put_contents("$sb[base]/update_cron", "#!/bin/bash\necho call >> '$rec'\n");
+    chmod("$sb[base]/update_cron", 0755);
+    setup_config([], ['schedule_enabled' => true, 'schedule' => '0 */6 * * *']);
+    file_put_contents("$sb[base]/var.ini", "mdState=\"STOPPED\"\n");
+    $link = "$sb[base]/registered.plg";
+    $env = ['FLIGHTPLAN_EMHTTP' => "$repoRoot/plugin", 'FLIGHTPLAN_VAR_INI' => "$sb[base]/var.ini", 'FLIGHTPLAN_UPDATE_CRON' => "$sb[base]/update_cron",
+        'FLIGHTPLAN_PLG_LINK' => $link, 'FLIGHTPLAN_CRON_WAIT' => '20'];
+    $p = proc_open(['/bin/bash', "$repoRoot/plugin/scripts/after-install.sh"], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, null, array_merge(getenv(), $env));
+    $t0 = microtime(true);
+    $out = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
+    $code = proc_close($p);
+    assert_eq(0, $code, $out);
+    assert_true(microtime(true) - $t0 < 10, 'after-install.sh blocked on the registration wait instead of detaching');
+    $calls = fn(): int => is_file($rec) ? count(file($rec)) : 0;
+    assert_eq(1, $calls(), 'the synchronous registration should have reloaded cron once');
+    usleep(1500000);
+    assert_eq(1, $calls(), 'reloaded again before the plugin was registered');
+    touch($link); // the plugin manager creates /var/log/plugins/flightplan.plg after the install script returns
+    $ok = false;
+    for ($i = 0; $i < 40 && !$ok; $i++) {
+        usleep(250000);
+        $ok = $calls() >= 2;
+    }
+    assert_true($ok, 'cron was not reloaded after the plugin registered, so the schedule would stay inactive until the next reload');
+    // a plugin with no schedule must not leave a waiting process or reload anything
+    unlink($link);
+    setup_config([], ['schedule_enabled' => false]);
+    $p = proc_open(['/bin/bash', "$repoRoot/plugin/scripts/after-install.sh"], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, null, array_merge(getenv(), $env));
+    stream_get_contents($pipes[1]);
+    stream_get_contents($pipes[2]);
+    proc_close($p);
+    @unlink($rec); // the synchronous pass legitimately removed the old cron file and reloaded once
+    touch($link);
+    usleep(2500000);
+    assert_eq(0, $calls(), 'reloaded cron although there is no schedule');
 });
 
 t('package: layout, executable event hook, stock README shape, deterministic bytes', function () use ($repoRoot, $plgRaw) {

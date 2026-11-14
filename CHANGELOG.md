@@ -3,6 +3,14 @@
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions are compared as plain strings by the Unraid plugin manager; keep every component single-digit or zero-padded.
 
+## [0.1.1]
+
+### Fixed
+- Fresh install or reinstall left the cron schedule inactive until cron was next reloaded: `update_cron` only includes plugins
+  already listed in `/var/log/plugins`, and the plugin manager adds this plugin there after the install script returns.
+  `after-install.sh` now also starts a detached, bounded helper that re-registers the schedule once the plugin is registered.
+  Found while exercising install, remove and reinstall on the real host.
+
 ## [0.1.0]
 
 ### Added
